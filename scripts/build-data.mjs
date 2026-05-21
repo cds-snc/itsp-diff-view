@@ -166,7 +166,11 @@ function parseReferences(html) {
   const refs = [];
   const re = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
   let match;
-  while ((match = re.exec(html))) refs.push({ title: htmlToText(match[2]), url: match[1].startsWith("/") ? `${BASE}${match[1]}` : decodeHtml(match[1]) });
+  while ((match = re.exec(html))) {
+    const title = htmlToText(match[2]);
+    if (["Table of Contents", "Previous", "Next", "Top of page"].includes(title)) continue;
+    refs.push({ title, url: match[1].startsWith("/") ? `${BASE}${match[1]}` : decodeHtml(match[1]) });
+  }
   if (!refs.length && /^None\.?$/i.test(htmlToText(html))) return [];
   return refs;
 }
@@ -199,6 +203,43 @@ function parseEnhancements(html, parent, sourceUrl) {
     });
   }
   return items;
+}
+
+function classifyScope(item) {
+  const text = [item.title, item.text, item.discussion, item.gcDiscussion].filter(Boolean).join("\n").toLowerCase();
+  const values = new Set();
+  const reasons = [];
+  let score = 0;
+
+  const add = (scope, confidence, reason) => {
+    values.add(scope);
+    reasons.push(reason);
+    score = Math.max(score, confidence);
+  };
+
+  if (/organization-level|organisational-level|mission\/business process-level/.test(text)) {
+    add("organization", 3, "Mentions organization-level or mission/business process-level applicability");
+  }
+  if (/system-level/.test(text)) {
+    add("system", 3, "Mentions system-level applicability");
+  }
+  if (/\b(program management|enterprise architecture|risk management strategy|privacy program|organization-wide|organizational policy|organizational policies|organizational procedures)\b/.test(text)) {
+    add("organization", 2, "Contains organization governance or program language");
+  }
+  if (/\borganization-defined\b/.test(text)) {
+    add("organization", 2, "Contains organization-defined assignment language");
+  }
+  if (/\b(within the system|system component|system components|system account|system accounts|organizational systems|information system|information systems|system-level|the system)\b/.test(text)) {
+    add("system", 2, "Contains system implementation language");
+  }
+
+  if (!values.size) {
+    values.add("needs_review");
+    reasons.push("No strong system or organization applicability language found");
+  }
+
+  const confidence = score >= 3 ? "high" : score === 2 ? "medium" : "low";
+  return { values: [...values], confidence, reasons };
 }
 
 function parseFamilyPage(family, html) {
@@ -242,7 +283,12 @@ function parseFamilyPage(family, html) {
       references: parseReferences(referencesHtml),
       sourceUrl,
     };
-    entries.push(control, ...parseEnhancements(enhancementsHtml, control, sourceUrl));
+    control.scope = classifyScope(control);
+    const enhancements = parseEnhancements(enhancementsHtml, control, sourceUrl).map((enhancement) => ({
+      ...enhancement,
+      scope: classifyScope(enhancement),
+    }));
+    entries.push(control, ...enhancements);
   }
   return entries;
 }
@@ -293,6 +339,7 @@ function buildDiff(oldEntries, newEntries) {
       displayId: newItem?.displayId || oldItem?.displayId || id,
       family: newItem?.family || oldItem?.family,
       type: newItem?.type || oldItem?.type,
+      scope: newItem?.scope || { values: ["needs_review"], confidence: "low", reasons: ["No new catalogue entry available to classify"] },
       status,
       old: oldItem || null,
       new: newItem || null,
@@ -311,7 +358,7 @@ function yamlScalar(value, indent = 2) {
 
 function toYaml(entries) {
   return `name: ITSP.10.033\nsource: ${BASE}${TOC_URL}\nfetched_at: ${new Date().toISOString()}\ncontrols:\n${entries.map((item) => {
-    const fields = ["canonicalId", "displayId", "sourceId", "family", "type", "title", "text", "discussion", "gcDiscussion", "related", "withdrawn", "sourceUrl"];
+    const fields = ["canonicalId", "displayId", "sourceId", "family", "type", "title", "text", "discussion", "gcDiscussion", "related", "references", "scope", "withdrawn", "sourceUrl"];
     return `  - ${fields.map((field, index) => {
       const value = item[field];
       if (value === undefined || value === "" || (Array.isArray(value) && value.length === 0)) return "";

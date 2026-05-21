@@ -12,6 +12,8 @@ const els = {
   family: document.querySelector("#family"),
   status: document.querySelector("#status"),
   type: document.querySelector("#type"),
+  scope: document.querySelector("#scope"),
+  resultCount: document.querySelector("#resultCount"),
   sourceLink: document.querySelector("#sourceLink"),
 };
 
@@ -28,6 +30,8 @@ function searchable(row) {
     row.family,
     row.type,
     row.status,
+    row.scope?.values?.join(" "),
+    row.scope?.reasons?.join(" "),
     row.old?.title,
     row.old?.text,
     row.old?.related?.join(" "),
@@ -57,16 +61,25 @@ function currentRows() {
   const family = els.family.value;
   const status = els.status.value;
   const type = els.type.value;
+  const scope = els.scope.value;
   return state.data.diffs
     .filter((row) => !family || row.family === family)
     .filter((row) => !status || row.status === status)
     .filter((row) => !type || row.type === type)
+    .filter((row) => {
+      if (!scope) return true;
+      const values = row.scope?.values || [];
+      if (scope === "both") return values.includes("system") && values.includes("organization");
+      return values.includes(scope);
+    })
     .filter((row) => !q || searchable(row).includes(q))
     .sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9) || a.id.localeCompare(b.id));
 }
 
 function renderTable() {
   state.rows = currentRows();
+  const total = state.data.diffs.length;
+  els.resultCount.textContent = `${state.rows.length.toLocaleString()} of ${total.toLocaleString()} shown`;
   els.rows.innerHTML = state.rows.map((row) => {
     const title = row.new?.title || row.old?.title || "";
     return `
@@ -76,6 +89,7 @@ function renderTable() {
         <td>${esc(title)}</td>
         <td><span class="badge ${esc(row.status)}">${esc(row.status)}</span></td>
         <td>${esc(row.type || "")}</td>
+        <td>${esc(scopeLabel(row.scope))}</td>
       </tr>
     `;
   }).join("");
@@ -103,6 +117,27 @@ function renderReferences(references = []) {
   `;
 }
 
+function scopeLabel(scope) {
+  const values = scope?.values || [];
+  if (values.includes("system") && values.includes("organization")) return "System and organization";
+  if (values.includes("system")) return "System";
+  if (values.includes("organization")) return "Organization";
+  return "Needs review";
+}
+
+function renderScope(scope) {
+  if (!scope) return "";
+  return `
+    <div class="text-box">
+      <h3>Scope classification</h3>
+      <p class="scope-summary">${esc(scopeLabel(scope))} <span>${esc(scope.confidence || "low")} confidence</span></p>
+      <ul class="references">
+        ${(scope.reasons || []).map((reason) => `<li>${esc(reason)}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
+
 function renderDetail(row) {
   if (!row) {
     els.detail.innerHTML = `<p class="empty">Select a row to inspect the old and new text.</p>`;
@@ -119,6 +154,7 @@ function renderDetail(row) {
       <span class="badge ${esc(row.status)}">${esc(row.status)}</span>
       <span class="pill">${esc(row.family || "")}</span>
       <span class="pill">${esc(row.type || "")}</span>
+      <span class="pill">${esc(scopeLabel(row.scope))}</span>
       ${source ? `<span class="pill">${source}</span>` : ""}
     </div>
     <div class="compare">
@@ -128,6 +164,7 @@ function renderDetail(row) {
       ${newItem.discussion ? `<div class="text-box"><h3>New discussion</h3><pre>${esc(newItem.discussion)}</pre></div>` : ""}
       ${newItem.related?.length ? `<div class="text-box"><h3>Related controls</h3><pre>${esc(newItem.related.join(", "))}</pre></div>` : ""}
       ${renderReferences(newItem.references)}
+      ${renderScope(row.scope)}
     </div>
   `;
 }
@@ -155,7 +192,7 @@ async function init() {
   sync();
 }
 
-[els.search, els.family, els.status, els.type].forEach((el) => el.addEventListener("input", sync));
+[els.search, els.family, els.status, els.type, els.scope].forEach((el) => el.addEventListener("input", sync));
 
 els.rows.addEventListener("click", (event) => {
   const tr = event.target.closest("tr[data-id]");

@@ -84,7 +84,7 @@ main {
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 180px 150px 150px;
+  grid-template-columns: minmax(220px, 1fr) 180px 150px 150px 160px minmax(130px, auto);
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -99,6 +99,16 @@ select {
   background: #fff;
   color: var(--ink);
   font: inherit;
+}
+
+.result-count {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 38px;
+  color: var(--muted);
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 .layout {
@@ -239,6 +249,17 @@ tbody tr.selected {
 
 .references a {
   color: var(--blue);
+}
+
+.scope-summary {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.scope-summary span {
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: capitalize;
 }
 
 mark.add {

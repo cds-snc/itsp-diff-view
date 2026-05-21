@@ -35,6 +35,14 @@
           <option value="activity">Activities</option>
           <option value="enhancement">Enhancements</option>
         </select>
+        <select id="scope">
+          <option value="">All scopes</option>
+          <option value="system">System</option>
+          <option value="organization">Organization</option>
+          <option value="both">Both</option>
+          <option value="needs_review">Needs review</option>
+        </select>
+        <output id="resultCount" class="result-count" aria-live="polite"></output>
       </section>
 
       <section class="layout">
@@ -47,6 +55,7 @@
                 <th>Title</th>
                 <th>Status</th>
                 <th>Type</th>
+                <th>Scope</th>
               </tr>
             </thead>
             <tbody id="rows"></tbody>
