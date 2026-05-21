@@ -127,7 +127,7 @@ function sync() {
 }
 
 async function init() {
-  const res = await fetch("/data/catalogue.json");
+  const res = await fetch("./data/catalogue.json");
   if (!res.ok) {
     els.detail.innerHTML = `<p class="empty">Run <code>npm run build:data</code> first.</p>`;
     return;
