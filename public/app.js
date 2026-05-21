@@ -89,6 +89,20 @@ function renderDiff(parts) {
   }).join("");
 }
 
+function renderReferences(references = []) {
+  if (!references.length) return "";
+  return `
+    <div class="text-box">
+      <h3>References</h3>
+      <ul class="references">
+        ${references.map((ref) => `
+          <li><a href="${esc(ref.url)}" target="_blank" rel="noopener noreferrer">${esc(ref.title || ref.url)}</a></li>
+        `).join("")}
+      </ul>
+    </div>
+  `;
+}
+
 function renderDetail(row) {
   if (!row) {
     els.detail.innerHTML = `<p class="empty">Select a row to inspect the old and new text.</p>`;
@@ -113,6 +127,7 @@ function renderDetail(row) {
       <div class="text-box"><h3>New</h3><pre>${esc(newItem.text || "No new entry")}</pre></div>
       ${newItem.discussion ? `<div class="text-box"><h3>New discussion</h3><pre>${esc(newItem.discussion)}</pre></div>` : ""}
       ${newItem.related?.length ? `<div class="text-box"><h3>Related controls</h3><pre>${esc(newItem.related.join(", "))}</pre></div>` : ""}
+      ${renderReferences(newItem.references)}
     </div>
   `;
 }

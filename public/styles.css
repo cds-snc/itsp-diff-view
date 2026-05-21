@@ -228,6 +228,19 @@ tbody tr.selected {
   font: inherit;
 }
 
+.references {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.references li + li {
+  margin-top: 6px;
+}
+
+.references a {
+  color: var(--blue);
+}
+
 mark.add {
   background: #dff5ec;
   color: #064d39;
