@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+
+# Editor and OS noise
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Runtime output
+coverage/
+.nyc_output/
+dist/
+build/
+
+# Local server/cache artifacts
+.cache/
+.parcel-cache/
